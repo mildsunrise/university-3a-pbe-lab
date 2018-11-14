@@ -2,7 +2,7 @@ function in = test_latency_acquire()
 
     % 1s silence, then sinus
     fs = 48000;
-    signal = [ zeros(fs*1, 1); rand(fs*1.5, 1) ];
+    signal = [ zeros(fs*1, 1); (rand(fs*1.5, 1)*2-1) ];
     in = raw_acquire(signal, fs, 16, -1, -1)';
 
 end
