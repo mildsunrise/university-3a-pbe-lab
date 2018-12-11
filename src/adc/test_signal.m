@@ -1,0 +1,6 @@
+function signal = test_signal(silence_samples, noise_samples, noise_amplitude)
+%TEST_SIGNAL Generate test signal for loopback test
+    signal = [ ...
+        zeros(1, silence_samples), ...
+        noise_amplitude * (rand(1, noise_samples)*2-1) ];
+end
