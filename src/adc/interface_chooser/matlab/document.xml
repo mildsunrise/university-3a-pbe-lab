@@ -147,7 +147,10 @@
 
         % Button pushed function: DoneButton
         function DoneButtonPushed(app, event)
-            app.DoneCallback
+            setpref("virtualinstruments", "outputID", app.OutputDeviceDropDown.Value);
+            setpref("virtualinstruments", "inputID", app.InputDeviceDropDown.Value);
+            app.delete;
+            analyzer;
         end
     end
 

@@ -1,0 +1,292 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:pPr><w:pStyle w:val="code"/></w:pPr><w:r><w:t><![CDATA[classdef equalizer < matlab.apps.AppBase
+
+    % Properties that correspond to app components
+    properties (Access = public)
+        UIFigure                     matlab.ui.Figure
+        Slider_2                     matlab.ui.control.Slider
+        ResponseAxes                 matlab.ui.control.UIAxes
+        InputfilenameEditFieldLabel  matlab.ui.control.Label
+        InputfilenameEditField       matlab.ui.control.EditField
+        BrowseButton                 matlab.ui.control.Button
+        ConvertButton                matlab.ui.control.Button
+        ConversionLabel              matlab.ui.control.Label
+        Slider_1                     matlab.ui.control.Slider
+        Slider_3                     matlab.ui.control.Slider
+        Slider_4                     matlab.ui.control.Slider
+        Slider_5                     matlab.ui.control.Slider
+        Slider_6                     matlab.ui.control.Slider
+        Slider_7                     matlab.ui.control.Slider
+        Slider_8                     matlab.ui.control.Slider
+        Slider_9                     matlab.ui.control.Slider
+        Slider_10                    matlab.ui.control.Slider
+        GainsLabel                   matlab.ui.control.Label
+    end
+
+    
+    properties (Access = private)
+        Fs = 48000
+        Gains
+        Freqs
+        Bandwidths
+        sos
+    end
+    
+    methods (Access = private)
+        
+        function gainChanged(app, idx, value)
+            app.Gains(idx) = value;
+            app.sos(idx, :) = coef_peak(app.Freqs(idx), app.Bandwidths(idx), app.Gains(idx), app.Fs);
+            app.regenerateFilter;
+        end
+        function regenerateFilter(app)
+            imp = impu_coef(app.sos);
+            plot_EQ(app.ResponseAxes, imp, app.Fs);
+        end
+        function updateAllFilters(app)
+            for idx = (1:length(app.Gains))
+                app.sos(idx, :) = coef_peak(app.Freqs(idx), app.Bandwidths(idx), app.Gains(idx), app.Fs);
+            end
+            app.regenerateFilter;
+        end
+    
+    end
+    
+
+    methods (Access = private)
+
+        % Code that executes after component creation
+        function startupFcn(app)
+            app.Gains = zeros(1, 10);
+            app.Freqs = [31.25 62.5 125 250 500 1000 2000 4000 8000 16000];
+            app.Bandwidths = 200 * ones(1, length(app.Gains));
+            app.sos = zeros(length(app.Gains), 6);
+            app.updateAllFilters;
+        end
+
+        % Value changed function: Slider_1
+        function Slider_1ValueChanged(app, event)
+            app.gainChanged(1, app.Slider_1.Value)
+        end
+
+        % Value changed function: Slider_2
+        function Slider_2ValueChanged(app, event)
+            app.gainChanged(2, app.Slider_2.Value)
+        end
+
+        % Value changed function: Slider_3
+        function Slider_3ValueChanged(app, event)
+            app.gainChanged(3, app.Slider_3.Value)
+
+        end
+
+        % Value changed function: Slider_4
+        function Slider_4ValueChanged(app, event)
+            app.gainChanged(4, app.Slider_4.Value)
+        end
+
+        % Value changed function: Slider_5
+        function Slider_5ValueChanged(app, event)
+            app.gainChanged(5, app.Slider_5.Value)
+            
+        end
+
+        % Value changed function: Slider_6
+        function Slider_6ValueChanged(app, event)
+            app.gainChanged(6, app.Slider_6.Value)
+            
+        end
+
+        % Value changed function: Slider_7
+        function Slider_7ValueChanged(app, event)
+            app.gainChanged(7, app.Slider_7.Value)
+            
+        end
+
+        % Value changed function: Slider_8
+        function Slider_8ValueChanged(app, event)
+            app.gainChanged(8, app.Slider_8.Value)
+            
+        end
+
+        % Value changed function: Slider_9
+        function Slider_9ValueChanged(app, event)
+            app.gainChanged(9, app.Slider_9.Value)
+            
+        end
+
+        % Value changed function: Slider_10
+        function Slider_10ValueChanged(app, event)
+            app.gainChanged(10, app.Slider_10.Value)
+        end
+
+        % Button pushed function: BrowseButton
+        function BrowseButtonPushed(app, event)
+            [path, file] = uigetfile("*");
+            app.InputfilenameEditField.Value = path + "/" + file;
+            app.ConvertButton.Enable = true;
+        end
+
+        % Button pushed function: ConvertButton
+        function ConvertButtonPushed(app, event)
+            [x, Fs] = audioread(app.InputfilenameEditField.Value);
+            sos = zeros(length(app.Gains), 6);
+            for idx = (1:length(app.Gains))
+                sos(idx, :) = coef_peak(app.Freqs(idx), app.Bandwidths(idx), app.Gains(idx), Fs);
+            end
+            y = filtrar_sos(sos, x);
+            audiowrite(app.InputfilenameEditField.Value + ".converted.wav", y, Fs);
+        end
+    end
+
+    % App initialization and construction
+    methods (Access = private)
+
+        % Create UIFigure and components
+        function createComponents(app)
+
+            % Create UIFigure
+            app.UIFigure = uifigure;
+            app.UIFigure.Position = [100 100 640 617];
+            app.UIFigure.Name = 'Equalizer | Virtual instruments';
+
+            % Create Slider_1
+            app.Slider_1 = uislider(app.UIFigure);
+            app.Slider_1.Limits = [-10 10];
+            app.Slider_1.Orientation = 'vertical';
+            app.Slider_1.ValueChangedFcn = createCallbackFcn(app, @Slider_1ValueChanged, true);
+            app.Slider_1.Position = [82 101 3 238];
+
+            % Create Slider_2
+            app.Slider_2 = uislider(app.UIFigure);
+            app.Slider_2.Limits = [-10 10];
+            app.Slider_2.Orientation = 'vertical';
+            app.Slider_2.ValueChangedFcn = createCallbackFcn(app, @Slider_2ValueChanged, true);
+            app.Slider_2.Position = [136 101 3 238];
+
+            % Create ResponseAxes
+            app.ResponseAxes = uiaxes(app.UIFigure);
+            title(app.ResponseAxes, 'Frequency response')
+            xlabel(app.ResponseAxes, 'X')
+            ylabel(app.ResponseAxes, 'Y')
+            app.ResponseAxes.Position = [21 367 599 236];
+
+            % Create InputfilenameEditFieldLabel
+            app.InputfilenameEditFieldLabel = uilabel(app.UIFigure);
+            app.InputfilenameEditFieldLabel.Position = [21 19 84 22];
+            app.InputfilenameEditFieldLabel.Text = 'Input filename:';
+
+            % Create InputfilenameEditField
+            app.InputfilenameEditField = uieditfield(app.UIFigure, 'text');
+            app.InputfilenameEditField.Position = [114 19 201 22];
+
+            % Create ConversionLabel
+            app.ConversionLabel = uilabel(app.UIFigure);
+            app.ConversionLabel.FontWeight = 'bold';
+            app.ConversionLabel.Position = [21 51 94 22];
+            app.ConversionLabel.Text = 'Conversion';
+
+            % Create BrowseButton
+            app.BrowseButton = uibutton(app.UIFigure, 'push');
+            app.BrowseButton.ButtonPushedFcn = createCallbackFcn(app, @BrowseButtonPushed, true);
+            app.BrowseButton.Icon = 'file.png';
+            app.BrowseButton.Position = [327 19 74 22];
+            app.BrowseButton.Text = 'Browse';
+
+            % Create ConvertButton
+            app.ConvertButton = uibutton(app.UIFigure, 'push');
+            app.ConvertButton.ButtonPushedFcn = createCallbackFcn(app, @ConvertButtonPushed, true);
+            app.ConvertButton.FontWeight = 'bold';
+            app.ConvertButton.Enable = 'off';
+            app.ConvertButton.Position = [436 19 87 22];
+            app.ConvertButton.Text = 'Convert';
+
+            % Create Slider_3
+            app.Slider_3 = uislider(app.UIFigure);
+            app.Slider_3.Limits = [-10 10];
+            app.Slider_3.Orientation = 'vertical';
+            app.Slider_3.ValueChangedFcn = createCallbackFcn(app, @Slider_3ValueChanged, true);
+            app.Slider_3.Position = [190 101 3 238];
+
+            % Create Slider_4
+            app.Slider_4 = uislider(app.UIFigure);
+            app.Slider_4.Limits = [-10 10];
+            app.Slider_4.Orientation = 'vertical';
+            app.Slider_4.ValueChangedFcn = createCallbackFcn(app, @Slider_4ValueChanged, true);
+            app.Slider_4.Position = [244 101 3 238];
+
+            % Create Slider_5
+            app.Slider_5 = uislider(app.UIFigure);
+            app.Slider_5.Limits = [-10 10];
+            app.Slider_5.Orientation = 'vertical';
+            app.Slider_5.ValueChangedFcn = createCallbackFcn(app, @Slider_5ValueChanged, true);
+            app.Slider_5.Position = [298 101 3 238];
+
+            % Create Slider_6
+            app.Slider_6 = uislider(app.UIFigure);
+            app.Slider_6.Limits = [-10 10];
+            app.Slider_6.Orientation = 'vertical';
+            app.Slider_6.ValueChangedFcn = createCallbackFcn(app, @Slider_6ValueChanged, true);
+            app.Slider_6.Position = [352 101 3 238];
+
+            % Create Slider_7
+            app.Slider_7 = uislider(app.UIFigure);
+            app.Slider_7.Limits = [-10 10];
+            app.Slider_7.Orientation = 'vertical';
+            app.Slider_7.ValueChangedFcn = createCallbackFcn(app, @Slider_7ValueChanged, true);
+            app.Slider_7.Position = [405 101 3 238];
+
+            % Create Slider_8
+            app.Slider_8 = uislider(app.UIFigure);
+            app.Slider_8.Limits = [-10 10];
+            app.Slider_8.Orientation = 'vertical';
+            app.Slider_8.ValueChangedFcn = createCallbackFcn(app, @Slider_8ValueChanged, true);
+            app.Slider_8.Position = [458 101 3 238];
+
+            % Create Slider_9
+            app.Slider_9 = uislider(app.UIFigure);
+            app.Slider_9.Limits = [-10 10];
+            app.Slider_9.Orientation = 'vertical';
+            app.Slider_9.ValueChangedFcn = createCallbackFcn(app, @Slider_9ValueChanged, true);
+            app.Slider_9.Position = [511 101 3 238];
+
+            % Create Slider_10
+            app.Slider_10 = uislider(app.UIFigure);
+            app.Slider_10.Limits = [-10 10];
+            app.Slider_10.Orientation = 'vertical';
+            app.Slider_10.ValueChangedFcn = createCallbackFcn(app, @Slider_10ValueChanged, true);
+            app.Slider_10.Position = [564 101 3 238];
+
+            % Create GainsLabel
+            app.GainsLabel = uilabel(app.UIFigure);
+            app.GainsLabel.Position = [24 209 37 22];
+            app.GainsLabel.Text = 'Gains';
+        end
+    end
+
+    methods (Access = public)
+
+        % Construct app
+        function app = equalizer
+
+            % Create and configure components
+            createComponents(app)
+
+            % Register the app with App Designer
+            registerApp(app, app.UIFigure)
+
+            % Execute the startup function
+            runStartupFcn(app, @startupFcn)
+
+            if nargout == 0
+                clear app
+            end
+        end
+
+        % Code that executes before app deletion
+        function delete(app)
+
+            % Delete UIFigure when app is deleted
+            delete(app.UIFigure)
+        end
+    end
+end]]></w:t></w:r></w:p></w:body></w:document>

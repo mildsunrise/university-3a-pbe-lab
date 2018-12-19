@@ -4,7 +4,7 @@ function response = frequency_response(input,output,ffinal)
 % input: input signal
 % output: output signal
 % ffinal: final frequency of the chirp (assume initial = 20Hz)
-response=20*log10(abs(envelope_hilbert(output))./abs(envelope_hilbert(input)));
+response = amplitude_to_db(envelope_hilbert(output)./envelope_hilbert(input));
 
 f=(20:(ffinal-20)/length(input):ffinal-(ffinal-20)/length(input));
 

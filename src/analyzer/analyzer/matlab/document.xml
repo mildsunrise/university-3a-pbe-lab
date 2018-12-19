@@ -1,0 +1,482 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:pPr><w:pStyle w:val="code"/></w:pPr><w:r><w:t><![CDATA[classdef analyzer < matlab.apps.AppBase
+
+    % Properties that correspond to app components
+    properties (Access = public)
+        UIFigure                   matlab.ui.Figure
+        FileMenu                   matlab.ui.container.Menu
+        NewtestMenu                matlab.ui.container.Menu
+        BypassmodeMenu             matlab.ui.container.Menu
+        InterfacesettingsMenu      matlab.ui.container.Menu
+        AudiointerfacesMenu        matlab.ui.container.Menu
+        ExitMenu                   matlab.ui.container.Menu
+        HelpMenu                   matlab.ui.container.Menu
+        AboutMenu                  matlab.ui.container.Menu
+        ReadyPanel                 matlab.ui.container.Panel
+        InstructionsLabel2         matlab.ui.control.Label
+        MeasureButton              matlab.ui.control.Button
+        InstructionsLabel1         matlab.ui.control.Label
+        ToneTestPanel              matlab.ui.container.Panel
+        ToneTestAxes               matlab.ui.control.UIAxes
+        ToneTestLampLabel          matlab.ui.control.Label
+        ToneTestLamp               matlab.ui.control.Lamp
+        ToneTestButton             matlab.ui.control.Button
+        InstructionsLabel3         matlab.ui.control.Label
+        ResultsPanel               matlab.ui.container.Panel
+        HarmonicsAxes              matlab.ui.control.UIAxes
+        ResponseAxes               matlab.ui.control.UIAxes
+        ThdAxes                    matlab.ui.control.UIAxes
+        PhaseAxes                  matlab.ui.control.UIAxes
+        ResultsHeadingLabel        matlab.ui.control.Label
+        IsolatedResponsePanel      matlab.ui.container.Panel
+        IsolatedResponseAxis       matlab.ui.control.UIAxes
+        FrequencyEditFieldLabel    matlab.ui.control.Label
+        IsolatedResponseFreqField  matlab.ui.control.NumericEditField
+        GlobaldataPanel            matlab.ui.container.Panel
+        GainEditFieldLabel         matlab.ui.control.Label
+        GainEditField              matlab.ui.control.NumericEditField
+        MeanTHDEditFieldLabel      matlab.ui.control.Label
+        MeanTHDEditField           matlab.ui.control.NumericEditField
+        TeststartedLabel           matlab.ui.control.Label
+        TestdurationLabel          matlab.ui.control.Label
+        TestStartValueLabel        matlab.ui.control.Label
+        TestDurationValueLabel     matlab.ui.control.Label
+    end
+
+    
+    properties (Access = private)
+        HarmonicsToMeasure = 8
+        HarmonicsToPlot = 2
+        HarmonicsInDB = true
+        FreqPoints = [ logspace(log10(20), log10(1000), 20) logspace(log10(1050), log10(14e3), 10) logspace(log10(14.1e3), log10(23.2e3), 20) ]
+        SignalTime = 12
+        THDFreq = 10e3
+        THDinDB = false
+        Input
+    end
+    
+
+    methods (Access = private)
+
+        % Code that executes after component creation
+        function startupFcn(app)
+            app.NewtestMenuSelected;
+        end
+
+        % Button pushed function: MeasureButton
+        function MeasureButtonPushed(app, event)
+            start = datetime;
+            tic;
+            
+            % Generate test signal
+            d = uiprogressdlg(app.UIFigure, 'Indeterminate', 'on', ...
+                'Message', sprintf("Generating output signal..."), ...
+                'Title', 'Measure process');
+            Fs = 48000; nBits = 16;
+            freq_points = app.FreqPoints;
+            freq_time = app.SignalTime * Fs;
+            signal = analyzer_signal(Fs, freq_points, freq_time);
+            
+            % Send
+            d.Message = sprintf("Sending measure signal...\nDon't manipulate the amplifier or gains until the measure is complete.");
+            try
+                in = raw_acquire(signal, Fs, nBits, getpref("virtualinstruments", "outputID"), getpref("virtualinstruments", "inputID"));
+                save("test", "in", "signal");
+
+            % Measure (FIXME: move out of if)
+            d.Message = sprintf("Measuring input signal...");
+            [ values, originals, phase, gain, thd, base_amplitude ] = analyzer_signal_measure(in, app.BypassmodeMenu.Checked, Fs, freq_points, freq_time, app.HarmonicsToMeasure);
+
+            catch err
+                close(d);
+                uialert(app.UIFigure, ...
+                    sprintf("There was a problem when playing / recording:\n%s", err.message), ...
+                    "Measure error", ...
+                    'Icon', 'error', 'Modal', true);
+                return
+            end
+
+            close(d);
+            duration = toc;
+            
+            % Update components
+            plot(app.ResponseAxes, freq_points, amplitude_to_db(values(1, :)) );
+            plot(app.PhaseAxes, freq_points, phase / (2*pi) * 360 );
+            plot(app.ThdAxes, freq_points, thd * 100 );
+            ylim(app.ThdAxes, [0 0.2]);
+            plot(app.HarmonicsAxes, freq_points, values(2:5, :));
+            app.GainEditField.Value = amplitude_to_db(gain);
+            thd = thd(thd < 0.4);
+            app.MeanTHDEditField.Value = median(thd) * 100;
+            app.TestStartValueLabel.Text = datestr(start);
+            app.TestDurationValueLabel.Text = sprintf("%.1f seconds", duration);
+            
+            app.ResultsPanel.Visible = true;
+            app.ReadyPanel.Visible = false;
+            app.NewtestMenu.Enable = true;
+        end
+
+        % Button pushed function: ToneTestButton
+        function ToneTestButtonPushed(app, event)
+            % Generate test signal
+            Fs = 48000; nBits = 16;
+            freq = 440;
+            samples = Fs * 2;
+            signal = 0.8 * sin(2*pi * freq * (1:samples)/Fs);
+            signal = [ signal; zeros(1, length(signal)) ];
+
+            % Send
+            d = uiprogressdlg(app.UIFigure, 'Indeterminate', 'on', 'Message', 'Sending test signal...', 'Title', 'Tone test');
+            try
+                in = raw_acquire(signal', Fs, nBits, getpref("virtualinstruments", "outputID"), getpref("virtualinstruments", "inputID"))';
+                in = in(1, :);
+            catch err
+                close(d);
+                uialert(app.UIFigure, ...
+                    sprintf("There was a problem when playing / recording:\n%s", err.message), ...
+                    "Tone test error", ...
+                    'Icon', 'error', 'Modal', true);
+                return
+            end
+            close(d);
+
+            % Extract snippet that we assume is valid, plot it
+            snippet = in(Fs*1.55:Fs*1.65);
+            cla(app.ToneTestAxes);
+            plot(app.ToneTestAxes, snippet);
+            xlim(app.ToneTestAxes, length(snippet)/2 + length(snippet)/8 * [-1 +1]/2);
+            hold(app.ToneTestAxes, 'on');
+            %plot(app.ToneTestAxes, xlim(app.ToneTestAxes), amplitude * [1 1], 'b-');
+            %plot(app.ToneTestAxes, xlim(app.ToneTestAxes), -amplitude * [1 1], 'b-');
+            hold(app.ToneTestAxes, 'off');
+            
+            % Test for safety
+            if abs(snippet) > 0.95
+                app.ToneTestLampLabel.Text = 'ADC saturation, lower ADC gain.';
+                app.ToneTestLamp.Color = [1 0 0];
+            end
+            amplitude = 2 * sum(exp(1j*2*pi * freq * (1:length(snippet))/Fs) .* snippet) / length(snippet);
+            if abs(amplitude) < 0.2
+                app.ToneTestLampLabel.Text = 'Insufficient amplitude.';
+                app.ToneTestLamp.Color = [1 0 0];
+                return
+            end
+            harmonic2 = 2 * sum(exp(1j*2*pi * 2*freq * (1:length(snippet))/Fs) .* snippet) / length(snippet);
+            harmonic3 = 2 * sum(exp(1j*2*pi * 3*freq * (1:length(snippet))/Fs) .* snippet) / length(snippet);
+            harmonic4 = 2 * sum(exp(1j*2*pi * 4*freq * (1:length(snippet))/Fs) .* snippet) / length(snippet);
+            harmonic5 = 2 * sum(exp(1j*2*pi * 5*freq * (1:length(snippet))/Fs) .* snippet) / length(snippet);
+            dist = (abs(harmonic2)^2 + abs(harmonic3)^2 + abs(harmonic4)^2 + abs(harmonic5)^2) / abs(amplitude)^2;
+            if dist > 0.003
+                app.ToneTestLampLabel.Text = 'Signal seems to have saturation.';
+                app.ToneTestLamp.Color = [1 0 0];
+                return
+            end
+            if dist > 0.001
+                app.ToneTestLampLabel.Text = 'Signal could have saturation.';
+                app.ToneTestLamp.Color = [1 1 0];
+                return
+            end
+            
+            app.ToneTestLampLabel.Text = 'Signal seems correct.';
+            app.ToneTestLamp.Color = [0 1 0];
+        end
+
+        % Menu selected function: NewtestMenu
+        function NewtestMenuSelected(app, event)
+            app.ResultsPanel.Visible = false;
+            app.ReadyPanel.Visible = true;
+            app.ToneTestLampLabel.Text = 'Ready to test.';
+            app.ToneTestLamp.Color = [0.6 0.6 0.6];
+            cla(app.ToneTestAxes);
+            app.NewtestMenu.Enable = false;
+        end
+
+        % Menu selected function: ExitMenu
+        function ExitMenuSelected(app, event)
+            app.delete;
+        end
+
+        % Value changed function: IsolatedResponseFreqField
+        function IsolatedResponseFreqFieldValueChanged(app, event)
+            value = app.IsolatedResponseFreqField.Value;
+            k = find(app.FreqPoints >= value, 1);
+            app.IsolatedResponseFreqField.Value = app.FreqPoints(k);
+            % response = 
+            % plot(app.IsolatedResponseAxis,  amplitude_to_db(fft()));
+        end
+
+        % Menu selected function: BypassmodeMenu
+        function BypassmodeMenuSelected(app, event)
+            app.BypassmodeMenu.Checked = true;
+        end
+
+        % Menu selected function: AudiointerfacesMenu
+        function AudiointerfacesMenuSelected(app, event)
+            app.delete;
+            interface_chooser;
+        end
+    end
+
+    % App initialization and construction
+    methods (Access = private)
+
+        % Create UIFigure and components
+        function createComponents(app)
+
+            % Create UIFigure
+            app.UIFigure = uifigure;
+            app.UIFigure.Position = [100 100 640 677];
+            app.UIFigure.Name = 'Analyzer | Virtual instruments';
+
+            % Create FileMenu
+            app.FileMenu = uimenu(app.UIFigure);
+            app.FileMenu.Text = 'File';
+
+            % Create NewtestMenu
+            app.NewtestMenu = uimenu(app.FileMenu);
+            app.NewtestMenu.MenuSelectedFcn = createCallbackFcn(app, @NewtestMenuSelected, true);
+            app.NewtestMenu.Enable = 'off';
+            app.NewtestMenu.Text = 'New test';
+
+            % Create BypassmodeMenu
+            app.BypassmodeMenu = uimenu(app.FileMenu);
+            app.BypassmodeMenu.MenuSelectedFcn = createCallbackFcn(app, @BypassmodeMenuSelected, true);
+            app.BypassmodeMenu.Text = 'Bypass mode';
+
+            % Create InterfacesettingsMenu
+            app.InterfacesettingsMenu = uimenu(app.FileMenu);
+            app.InterfacesettingsMenu.Visible = 'off';
+            app.InterfacesettingsMenu.Text = 'Interface settings...';
+
+            % Create AudiointerfacesMenu
+            app.AudiointerfacesMenu = uimenu(app.FileMenu);
+            app.AudiointerfacesMenu.MenuSelectedFcn = createCallbackFcn(app, @AudiointerfacesMenuSelected, true);
+            app.AudiointerfacesMenu.Text = 'Audio interfaces...';
+
+            % Create ExitMenu
+            app.ExitMenu = uimenu(app.FileMenu);
+            app.ExitMenu.MenuSelectedFcn = createCallbackFcn(app, @ExitMenuSelected, true);
+            app.ExitMenu.Text = 'Exit';
+
+            % Create HelpMenu
+            app.HelpMenu = uimenu(app.UIFigure);
+            app.HelpMenu.Text = 'Help';
+
+            % Create AboutMenu
+            app.AboutMenu = uimenu(app.HelpMenu);
+            app.AboutMenu.Text = 'About';
+
+            % Create ReadyPanel
+            app.ReadyPanel = uipanel(app.UIFigure);
+            app.ReadyPanel.BorderType = 'none';
+            app.ReadyPanel.Position = [1 93 640 585];
+
+            % Create InstructionsLabel2
+            app.InstructionsLabel2 = uilabel(app.ReadyPanel);
+            app.InstructionsLabel2.HorizontalAlignment = 'center';
+            app.InstructionsLabel2.Position = [104 415 434 22];
+            app.InstructionsLabel2.Text = 'Then, send a test tone to verify the received signal does not present saturation.';
+
+            % Create MeasureButton
+            app.MeasureButton = uibutton(app.ReadyPanel, 'push');
+            app.MeasureButton.ButtonPushedFcn = createCallbackFcn(app, @MeasureButtonPushed, true);
+            app.MeasureButton.Icon = 'button-measure.png';
+            app.MeasureButton.IconAlignment = 'top';
+            app.MeasureButton.FontSize = 16;
+            app.MeasureButton.Position = [266 96 109 82];
+            app.MeasureButton.Text = 'Measure';
+
+            % Create InstructionsLabel1
+            app.InstructionsLabel1 = uilabel(app.ReadyPanel);
+            app.InstructionsLabel1.HorizontalAlignment = 'center';
+            app.InstructionsLabel1.Position = [165 463 311 28];
+            app.InstructionsLabel1.Text = {'Connect the right channel of both DAC and ADC directly,'; 'and wire the amplifier to be tested at the left channel.'};
+
+            % Create ToneTestPanel
+            app.ToneTestPanel = uipanel(app.ReadyPanel);
+            app.ToneTestPanel.Position = [163 246 315 156];
+
+            % Create ToneTestAxes
+            app.ToneTestAxes = uiaxes(app.ToneTestPanel);
+            title(app.ToneTestAxes, '')
+            app.ToneTestAxes.Position = [8 40 300 108];
+
+            % Create ToneTestLampLabel
+            app.ToneTestLampLabel = uilabel(app.ToneTestPanel);
+            app.ToneTestLampLabel.Position = [39 10 206 22];
+            app.ToneTestLampLabel.Text = 'Tone Test Lamp';
+
+            % Create ToneTestLamp
+            app.ToneTestLamp = uilamp(app.ToneTestPanel);
+            app.ToneTestLamp.Position = [12 11 20 20];
+            app.ToneTestLamp.Color = [0.6 0.6 0.6];
+
+            % Create ToneTestButton
+            app.ToneTestButton = uibutton(app.ToneTestPanel, 'push');
+            app.ToneTestButton.ButtonPushedFcn = createCallbackFcn(app, @ToneTestButtonPushed, true);
+            app.ToneTestButton.Position = [251 10 55 22];
+            app.ToneTestButton.Text = 'Test';
+
+            % Create InstructionsLabel3
+            app.InstructionsLabel3 = uilabel(app.ReadyPanel);
+            app.InstructionsLabel3.HorizontalAlignment = 'center';
+            app.InstructionsLabel3.Position = [204 194 236 22];
+            app.InstructionsLabel3.Text = 'Once the setup is verified, start measuring:';
+
+            % Create ResultsPanel
+            app.ResultsPanel = uipanel(app.UIFigure);
+            app.ResultsPanel.BorderType = 'none';
+            app.ResultsPanel.Position = [1 1 640 677];
+
+            % Create HarmonicsAxes
+            app.HarmonicsAxes = uiaxes(app.ResultsPanel);
+            title(app.HarmonicsAxes, 'Harmonic distortion')
+            xlabel(app.HarmonicsAxes, 'Frequency [Hz]')
+            ylabel(app.HarmonicsAxes, 'Power [dB]')
+            app.HarmonicsAxes.XLim = [20 20000];
+            app.HarmonicsAxes.XMinorTick = 'on';
+            app.HarmonicsAxes.XScale = 'log';
+            app.HarmonicsAxes.Position = [329 452 300 185];
+
+            % Create ResponseAxes
+            app.ResponseAxes = uiaxes(app.ResultsPanel);
+            title(app.ResponseAxes, 'Frequency response')
+            xlabel(app.ResponseAxes, 'Frequency [Hz]')
+            ylabel(app.ResponseAxes, 'Power [dB]')
+            app.ResponseAxes.XLim = [20 20000];
+            app.ResponseAxes.XMinorTick = 'on';
+            app.ResponseAxes.XScale = 'log';
+            app.ResponseAxes.Position = [11 452 300 185];
+
+            % Create ThdAxes
+            app.ThdAxes = uiaxes(app.ResultsPanel);
+            title(app.ThdAxes, 'THD')
+            xlabel(app.ThdAxes, 'Frequency [Hz]')
+            ylabel(app.ThdAxes, 'THD [%]')
+            app.ThdAxes.XLim = [20 20000];
+            app.ThdAxes.XMinorTick = 'on';
+            app.ThdAxes.XScale = 'log';
+            app.ThdAxes.Position = [329 246 300 185];
+
+            % Create PhaseAxes
+            app.PhaseAxes = uiaxes(app.ResultsPanel);
+            title(app.PhaseAxes, 'Frequency response (phase)')
+            xlabel(app.PhaseAxes, 'Frequency [Hz]')
+            ylabel(app.PhaseAxes, 'Phase [deg]')
+            app.PhaseAxes.XLim = [20 20000];
+            app.PhaseAxes.XMinorTick = 'on';
+            app.PhaseAxes.XScale = 'log';
+            app.PhaseAxes.Position = [11 246 300 185];
+
+            % Create ResultsHeadingLabel
+            app.ResultsHeadingLabel = uilabel(app.ResultsPanel);
+            app.ResultsHeadingLabel.HorizontalAlignment = 'center';
+            app.ResultsHeadingLabel.FontSize = 15;
+            app.ResultsHeadingLabel.FontWeight = 'bold';
+            app.ResultsHeadingLabel.Position = [11 647 618 22];
+            app.ResultsHeadingLabel.Text = 'Test results';
+
+            % Create IsolatedResponsePanel
+            app.IsolatedResponsePanel = uipanel(app.ResultsPanel);
+            app.IsolatedResponsePanel.Title = 'Response at isolated frequency';
+            app.IsolatedResponsePanel.Position = [329 18 300 205];
+
+            % Create IsolatedResponseAxis
+            app.IsolatedResponseAxis = uiaxes(app.IsolatedResponsePanel);
+            title(app.IsolatedResponseAxis, '')
+            xlabel(app.IsolatedResponseAxis, 'Frequency [Hz]')
+            ylabel(app.IsolatedResponseAxis, 'Power [dB]')
+            app.IsolatedResponseAxis.XLim = [20 20000];
+            app.IsolatedResponseAxis.XMinorTick = 'on';
+            app.IsolatedResponseAxis.XScale = 'log';
+            app.IsolatedResponseAxis.Position = [8 11 283 134];
+
+            % Create FrequencyEditFieldLabel
+            app.FrequencyEditFieldLabel = uilabel(app.IsolatedResponsePanel);
+            app.FrequencyEditFieldLabel.HorizontalAlignment = 'right';
+            app.FrequencyEditFieldLabel.Position = [8 157 62 22];
+            app.FrequencyEditFieldLabel.Text = 'Frequency';
+
+            % Create IsolatedResponseFreqField
+            app.IsolatedResponseFreqField = uieditfield(app.IsolatedResponsePanel, 'numeric');
+            app.IsolatedResponseFreqField.Limits = [20 Inf];
+            app.IsolatedResponseFreqField.ValueDisplayFormat = '%.0f Hz';
+            app.IsolatedResponseFreqField.ValueChangedFcn = createCallbackFcn(app, @IsolatedResponseFreqFieldValueChanged, true);
+            app.IsolatedResponseFreqField.Position = [78 157 100 22];
+            app.IsolatedResponseFreqField.Value = 10000;
+
+            % Create GlobaldataPanel
+            app.GlobaldataPanel = uipanel(app.ResultsPanel);
+            app.GlobaldataPanel.Title = 'Global data';
+            app.GlobaldataPanel.Position = [19 18 292 205];
+
+            % Create GainEditFieldLabel
+            app.GainEditFieldLabel = uilabel(app.GlobaldataPanel);
+            app.GainEditFieldLabel.Position = [10 157 51 22];
+            app.GainEditFieldLabel.Text = 'Gain';
+
+            % Create GainEditField
+            app.GainEditField = uieditfield(app.GlobaldataPanel, 'numeric');
+            app.GainEditField.ValueDisplayFormat = '%.1f dB';
+            app.GainEditField.Editable = 'off';
+            app.GainEditField.Position = [76 157 100 22];
+
+            % Create MeanTHDEditFieldLabel
+            app.MeanTHDEditFieldLabel = uilabel(app.GlobaldataPanel);
+            app.MeanTHDEditFieldLabel.Position = [10 127 64 22];
+            app.MeanTHDEditFieldLabel.Text = 'Mean THD';
+
+            % Create MeanTHDEditField
+            app.MeanTHDEditField = uieditfield(app.GlobaldataPanel, 'numeric');
+            app.MeanTHDEditField.ValueDisplayFormat = '%.3f %%';
+            app.MeanTHDEditField.Editable = 'off';
+            app.MeanTHDEditField.Position = [76 127 100 22];
+
+            % Create TeststartedLabel
+            app.TeststartedLabel = uilabel(app.GlobaldataPanel);
+            app.TeststartedLabel.Position = [10 40 71 22];
+            app.TeststartedLabel.Text = 'Test started:';
+
+            % Create TestdurationLabel
+            app.TestdurationLabel = uilabel(app.GlobaldataPanel);
+            app.TestdurationLabel.Position = [10 11 78 22];
+            app.TestdurationLabel.Text = 'Test duration:';
+
+            % Create TestStartValueLabel
+            app.TestStartValueLabel = uilabel(app.GlobaldataPanel);
+            app.TestStartValueLabel.Position = [90 40 142 22];
+            app.TestStartValueLabel.Text = '2018-12-10 08:12:35';
+
+            % Create TestDurationValueLabel
+            app.TestDurationValueLabel = uilabel(app.GlobaldataPanel);
+            app.TestDurationValueLabel.Position = [90 11 142 22];
+            app.TestDurationValueLabel.Text = '20.2 seconds';
+        end
+    end
+
+    methods (Access = public)
+
+        % Construct app
+        function app = analyzer
+
+            % Create and configure components
+            createComponents(app)
+
+            % Register the app with App Designer
+            registerApp(app, app.UIFigure)
+
+            % Execute the startup function
+            runStartupFcn(app, @startupFcn)
+
+            if nargout == 0
+                clear app
+            end
+        end
+
+        % Code that executes before app deletion
+        function delete(app)
+
+            % Delete UIFigure when app is deleted
+            delete(app.UIFigure)
+        end
+    end
+end]]></w:t></w:r></w:p></w:body></w:document>

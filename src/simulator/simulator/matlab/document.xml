@@ -1,0 +1,345 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:pPr><w:pStyle w:val="code"/></w:pPr><w:r><w:t><![CDATA[classdef simulator < matlab.apps.AppBase
+
+    % Properties that correspond to app components
+    properties (Access = public)
+        UIFigure                      matlab.ui.Figure
+        DurationEditFieldLabel        matlab.ui.control.Label
+        DurationEditField             matlab.ui.control.NumericEditField
+        SimulationparametersLabel     matlab.ui.control.Label
+        ModulationfreqEditFieldLabel  matlab.ui.control.Label
+        ModulationfreqEditField       matlab.ui.control.NumericEditField
+        InputfrequencyEditFieldLabel  matlab.ui.control.Label
+        InputfrequencyEditField       matlab.ui.control.NumericEditField
+        InputamplitudeEditFieldLabel  matlab.ui.control.Label
+        InputamplitudeEditField       matlab.ui.control.NumericEditField
+        ModulationamplEditFieldLabel  matlab.ui.control.Label
+        ModulationamplEditField       matlab.ui.control.NumericEditField
+        RLCinductanceEditFieldLabel   matlab.ui.control.Label
+        RLCinductanceEditField        matlab.ui.control.NumericEditField
+        RLCcaoacitanceEditFieldLabel  matlab.ui.control.Label
+        RLCcaoacitanceEditField       matlab.ui.control.NumericEditField
+        RLCresistanceEditFieldLabel   matlab.ui.control.Label
+        RLCresistanceEditField        matlab.ui.control.NumericEditField
+        ResultsLabel                  matlab.ui.control.Label
+        SimulateButton                matlab.ui.control.Button
+        UIAxes1                       matlab.ui.control.UIAxes
+        UIAxes2                       matlab.ui.control.UIAxes
+        UIAxes6                       matlab.ui.control.UIAxes
+        UIAxes3                       matlab.ui.control.UIAxes
+        UIAxes5                       matlab.ui.control.UIAxes
+        UIAxes4                       matlab.ui.control.UIAxes
+        UIAxes7                       matlab.ui.control.UIAxes
+        UIAxes8                       matlab.ui.control.UIAxes
+        UIAxes9                       matlab.ui.control.UIAxes
+    end
+
+    methods (Access = private)
+
+        % Code that executes after component creation
+        function startupFcn(app)
+            app.SimulateButtonPushed;
+        end
+
+        % Button pushed function: SimulateButton
+        function SimulateButtonPushed(app, event)
+            dlg = uiprogressdlg(app.UIFigure, 'Indeterminate', 'on', 'Message', 'Simulating...');
+
+            %DEFINE PARAMETERS
+            %Global
+            Fs = 3*100e6; %sampling freq
+            Vdd=app.ModulationamplEditField.Value; %vdd
+            
+            %Test input
+            d=app.DurationEditField.Value;
+            t = 0:1/Fs:d;
+            %L=d*Fs;
+            f=app.InputfrequencyEditField.Value;
+            %Triangle wave
+            A=app.InputamplitudeEditField.Value;
+            fw=app.ModulationfreqEditField.Value;
+            %Filter
+            L=app.RLCinductanceEditField.Value * 1e-6;
+            C=app.RLCcaoacitanceEditField.Value * 1e-9;
+            R=app.RLCresistanceEditField.Value;
+            %==============================================
+            %DEFINE TEST SIGNAL
+            
+            s=A*cos(2*pi*f*t);
+            
+            
+            %==============================================
+            %MAIN
+            tw = Triangle_wave(A,fw,d,Fs); %we create a triangle wave with the same duration of the signal and Fs
+            
+            c = Comparator(s,tw); %Comparator Block - Out=1 if input>wave, else 0 
+            
+            a=Ampl(c,Vdd); %Amplifies the signal to Vdd or -Vdd
+            
+            [fc,out]=Filter(L,C,R,Fs,a);
+            %==============================================
+            %PLOTING SIGNALS
+            
+            ax = app.UIAxes1;
+            plot(ax, t,s,t,tw);
+            xlim(ax, [0 0.5/f]);
+            title(ax, 'Input(Blue) TriangleWave(Orange)');
+            xlabel(ax, 't');
+            
+            ax = app.UIAxes2;
+            semilogx(ax, amplitude_to_db(fft(s)));
+            %xlim(ax, [-0.5 ]);
+            title(ax, 'FFT of the input');
+            xlabel(ax, 'f');
+            
+            ax = app.UIAxes3;
+            plot(ax, t,c);
+            xlim(ax, [0 20/fw]);
+            title(ax, 'Compared signal');
+            xlabel(ax, 't');
+            
+            ax = app.UIAxes4;
+            plot(ax, amplitude_to_db(fft(c)));
+            %xlim(ax, [0 5/f]);
+            title(ax, 'FFT of the compared signal');
+            xlabel(ax, 'f');
+            
+            ax = app.UIAxes5;
+            plot(ax, t,a);
+            xlim(ax, [0 20/fw]);
+            title(ax, 'Compared and amplified signal');
+            xlabel(ax, 't');
+            
+            ax = app.UIAxes6;
+            plot(ax, amplitude_to_db(fft(a)));
+            title(ax, 'FFT of compared + amplified signal');
+            xlabel(ax, 'f');
+            
+            ax = app.UIAxes7;
+            plot(ax, t,out,t,s);
+            xlim(ax, [10/f 15/f]);  
+            title(ax, 'Input Signal (orange) and Output (blue)');
+            xlabel(ax, 't');
+            
+            ax = app.UIAxes8;
+            plot(ax, t, amplitude_to_db(fft(out)), t,amplitude_to_db(fft(s)));
+            title(ax, 'FFT Input and output');
+            xlabel(ax, 'f');
+            
+            ax = app.UIAxes9;
+            Plot_filter(ax, L,C,R,Fs,a);
+            hold(ax, "on");
+
+            close(dlg);
+        end
+    end
+
+    % App initialization and construction
+    methods (Access = private)
+
+        % Create UIFigure and components
+        function createComponents(app)
+
+            % Create UIFigure
+            app.UIFigure = uifigure;
+            app.UIFigure.Position = [100 100 1000 852];
+            app.UIFigure.Name = 'Class-D amplifier simulator | Virtual instruments';
+
+            % Create DurationEditFieldLabel
+            app.DurationEditFieldLabel = uilabel(app.UIFigure);
+            app.DurationEditFieldLabel.Position = [15 783 51 22];
+            app.DurationEditFieldLabel.Text = 'Duration';
+
+            % Create DurationEditField
+            app.DurationEditField = uieditfield(app.UIFigure, 'numeric');
+            app.DurationEditField.ValueDisplayFormat = '%11.4g s';
+            app.DurationEditField.Position = [116 783 100 22];
+            app.DurationEditField.Value = 0.025;
+
+            % Create SimulationparametersLabel
+            app.SimulationparametersLabel = uilabel(app.UIFigure);
+            app.SimulationparametersLabel.FontWeight = 'bold';
+            app.SimulationparametersLabel.Position = [15 818 135 22];
+            app.SimulationparametersLabel.Text = 'Simulation parameters';
+
+            % Create ModulationfreqEditFieldLabel
+            app.ModulationfreqEditFieldLabel = uilabel(app.UIFigure);
+            app.ModulationfreqEditFieldLabel.Position = [15 747 92 22];
+            app.ModulationfreqEditFieldLabel.Text = 'Modulation freq.';
+
+            % Create ModulationfreqEditField
+            app.ModulationfreqEditField = uieditfield(app.UIFigure, 'numeric');
+            app.ModulationfreqEditField.ValueDisplayFormat = '%11.4g Hz';
+            app.ModulationfreqEditField.Position = [116 747 100 22];
+            app.ModulationfreqEditField.Value = 5000000;
+
+            % Create InputfrequencyEditFieldLabel
+            app.InputfrequencyEditFieldLabel = uilabel(app.UIFigure);
+            app.InputfrequencyEditFieldLabel.Position = [252 747 88 22];
+            app.InputfrequencyEditFieldLabel.Text = 'Input frequency';
+
+            % Create InputfrequencyEditField
+            app.InputfrequencyEditField = uieditfield(app.UIFigure, 'numeric');
+            app.InputfrequencyEditField.ValueDisplayFormat = '%11.0f Hz';
+            app.InputfrequencyEditField.Position = [353 747 100 22];
+            app.InputfrequencyEditField.Value = 10000;
+
+            % Create InputamplitudeEditFieldLabel
+            app.InputamplitudeEditFieldLabel = uilabel(app.UIFigure);
+            app.InputamplitudeEditFieldLabel.Position = [252 709 88 22];
+            app.InputamplitudeEditFieldLabel.Text = 'Input amplitude';
+
+            % Create InputamplitudeEditField
+            app.InputamplitudeEditField = uieditfield(app.UIFigure, 'numeric');
+            app.InputamplitudeEditField.ValueDisplayFormat = '%11.4g V';
+            app.InputamplitudeEditField.Position = [353 709 100 22];
+            app.InputamplitudeEditField.Value = 1;
+
+            % Create ModulationamplEditFieldLabel
+            app.ModulationamplEditFieldLabel = uilabel(app.UIFigure);
+            app.ModulationamplEditFieldLabel.Position = [15 709 97 22];
+            app.ModulationamplEditFieldLabel.Text = 'Modulation ampl.';
+
+            % Create ModulationamplEditField
+            app.ModulationamplEditField = uieditfield(app.UIFigure, 'numeric');
+            app.ModulationamplEditField.ValueDisplayFormat = '%11.4g V';
+            app.ModulationamplEditField.Position = [116 709 100 22];
+            app.ModulationamplEditField.Value = 5;
+
+            % Create RLCinductanceEditFieldLabel
+            app.RLCinductanceEditFieldLabel = uilabel(app.UIFigure);
+            app.RLCinductanceEditFieldLabel.Position = [487 745 91 22];
+            app.RLCinductanceEditFieldLabel.Text = 'RLC inductance';
+
+            % Create RLCinductanceEditField
+            app.RLCinductanceEditField = uieditfield(app.UIFigure, 'numeric');
+            app.RLCinductanceEditField.ValueDisplayFormat = '%11.0f µH';
+            app.RLCinductanceEditField.Position = [588 745 100 22];
+            app.RLCinductanceEditField.Value = 22;
+
+            % Create RLCcaoacitanceEditFieldLabel
+            app.RLCcaoacitanceEditFieldLabel = uilabel(app.UIFigure);
+            app.RLCcaoacitanceEditFieldLabel.Position = [487 709 97 22];
+            app.RLCcaoacitanceEditFieldLabel.Text = 'RLC caoacitance';
+
+            % Create RLCcaoacitanceEditField
+            app.RLCcaoacitanceEditField = uieditfield(app.UIFigure, 'numeric');
+            app.RLCcaoacitanceEditField.ValueDisplayFormat = '%11.0f nF';
+            app.RLCcaoacitanceEditField.Position = [588 709 100 22];
+            app.RLCcaoacitanceEditField.Value = 470;
+
+            % Create RLCresistanceEditFieldLabel
+            app.RLCresistanceEditFieldLabel = uilabel(app.UIFigure);
+            app.RLCresistanceEditFieldLabel.Position = [487 783 88 22];
+            app.RLCresistanceEditFieldLabel.Text = 'RLC resistance';
+
+            % Create RLCresistanceEditField
+            app.RLCresistanceEditField = uieditfield(app.UIFigure, 'numeric');
+            app.RLCresistanceEditField.ValueDisplayFormat = '%11.0f Ω';
+            app.RLCresistanceEditField.Position = [588 783 100 22];
+            app.RLCresistanceEditField.Value = 8;
+
+            % Create ResultsLabel
+            app.ResultsLabel = uilabel(app.UIFigure);
+            app.ResultsLabel.FontWeight = 'bold';
+            app.ResultsLabel.Position = [15 622 49 22];
+            app.ResultsLabel.Text = 'Results';
+
+            % Create SimulateButton
+            app.SimulateButton = uibutton(app.UIFigure, 'push');
+            app.SimulateButton.ButtonPushedFcn = createCallbackFcn(app, @SimulateButtonPushed, true);
+            app.SimulateButton.FontWeight = 'bold';
+            app.SimulateButton.Position = [788 736 115 40];
+            app.SimulateButton.Text = 'Simulate';
+
+            % Create UIAxes1
+            app.UIAxes1 = uiaxes(app.UIFigure);
+            title(app.UIAxes1, 'Title')
+            xlabel(app.UIAxes1, 'X')
+            ylabel(app.UIAxes1, 'Y')
+            app.UIAxes1.Position = [16 422 314 185];
+
+            % Create UIAxes2
+            app.UIAxes2 = uiaxes(app.UIFigure);
+            title(app.UIAxes2, 'Title')
+            xlabel(app.UIAxes2, 'X')
+            ylabel(app.UIAxes2, 'Y')
+            app.UIAxes2.Position = [339 422 317 185];
+
+            % Create UIAxes6
+            app.UIAxes6 = uiaxes(app.UIFigure);
+            title(app.UIAxes6, 'Title')
+            xlabel(app.UIAxes6, 'X')
+            ylabel(app.UIAxes6, 'Y')
+            app.UIAxes6.Position = [339 15 317 185];
+
+            % Create UIAxes3
+            app.UIAxes3 = uiaxes(app.UIFigure);
+            title(app.UIAxes3, 'Title')
+            xlabel(app.UIAxes3, 'X')
+            ylabel(app.UIAxes3, 'Y')
+            app.UIAxes3.Position = [16 216 314 185];
+
+            % Create UIAxes5
+            app.UIAxes5 = uiaxes(app.UIFigure);
+            title(app.UIAxes5, 'Title')
+            xlabel(app.UIAxes5, 'X')
+            ylabel(app.UIAxes5, 'Y')
+            app.UIAxes5.Position = [16 15 314 185];
+
+            % Create UIAxes4
+            app.UIAxes4 = uiaxes(app.UIFigure);
+            title(app.UIAxes4, 'Title')
+            xlabel(app.UIAxes4, 'X')
+            ylabel(app.UIAxes4, 'Y')
+            app.UIAxes4.Position = [339 216 317 185];
+
+            % Create UIAxes7
+            app.UIAxes7 = uiaxes(app.UIFigure);
+            title(app.UIAxes7, 'Title')
+            xlabel(app.UIAxes7, 'X')
+            ylabel(app.UIAxes7, 'Y')
+            app.UIAxes7.Position = [667 422 317 185];
+
+            % Create UIAxes8
+            app.UIAxes8 = uiaxes(app.UIFigure);
+            title(app.UIAxes8, 'Title')
+            xlabel(app.UIAxes8, 'X')
+            ylabel(app.UIAxes8, 'Y')
+            app.UIAxes8.Position = [667 15 317 185];
+
+            % Create UIAxes9
+            app.UIAxes9 = uiaxes(app.UIFigure);
+            title(app.UIAxes9, 'RLC filter response')
+            xlabel(app.UIAxes9, 'X')
+            ylabel(app.UIAxes9, 'Y')
+            app.UIAxes9.Position = [667 216 317 185];
+        end
+    end
+
+    methods (Access = public)
+
+        % Construct app
+        function app = simulator
+
+            % Create and configure components
+            createComponents(app)
+
+            % Register the app with App Designer
+            registerApp(app, app.UIFigure)
+
+            % Execute the startup function
+            runStartupFcn(app, @startupFcn)
+
+            if nargout == 0
+                clear app
+            end
+        end
+
+        % Code that executes before app deletion
+        function delete(app)
+
+            % Delete UIFigure when app is deleted
+            delete(app.UIFigure)
+        end
+    end
+end]]></w:t></w:r></w:p></w:body></w:document>
