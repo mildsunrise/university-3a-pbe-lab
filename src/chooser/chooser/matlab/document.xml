@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:pPr><w:pStyle w:val="code"/></w:pPr><w:r><w:t><![CDATA[classdef chooser < matlab.apps.AppBase
+
+    % Properties that correspond to app components
+    properties (Access = public)
+        UIFigure         matlab.ui.Figure
+        AnalyzerButton   matlab.ui.control.Button
+        EqualizerButton  matlab.ui.control.Button
+        SimulatorButton  matlab.ui.control.Button
+        InstrLabel       matlab.ui.control.Label
+        VersionLabel     matlab.ui.control.Label
+    end
+
+    methods (Access = private)
+
+        % Button pushed function: AnalyzerButton
+        function AnalyzerButtonPushed(app, event)
+            app.delete;
+            interface_chooser;
+        end
+
+        % Button pushed function: EqualizerButton
+        function EqualizerButtonPushed(app, event)
+            app.delete;
+            equalizer;
+        end
+
+        % Button pushed function: SimulatorButton
+        function SimulatorButtonPushed(app, event)
+            app.delete;
+            simulator;
+        end
+    end
+
+    % App initialization and construction
+    methods (Access = private)
+
+        % Create UIFigure and components
+        function createComponents(app)
+
+            % Create UIFigure
+            app.UIFigure = uifigure;
+            app.UIFigure.Color = [0.9412 0.9412 0.9412];
+            app.UIFigure.Position = [570 400 502 227];
+            app.UIFigure.Name = 'Virtual Instruments';
+
+            % Create AnalyzerButton
+            app.AnalyzerButton = uibutton(app.UIFigure, 'push');
+            app.AnalyzerButton.ButtonPushedFcn = createCallbackFcn(app, @AnalyzerButtonPushed, true);
+            app.AnalyzerButton.Icon = 'analyzer-icon.png';
+            app.AnalyzerButton.IconAlignment = 'top';
+            app.AnalyzerButton.FontSize = 15;
+            app.AnalyzerButton.Position = [27 26 132 143];
+            app.AnalyzerButton.Text = {'System'; 'Analyzer'};
+
+            % Create EqualizerButton
+            app.EqualizerButton = uibutton(app.UIFigure, 'push');
+            app.EqualizerButton.ButtonPushedFcn = createCallbackFcn(app, @EqualizerButtonPushed, true);
+            app.EqualizerButton.Icon = 'equalizer-icon.png';
+            app.EqualizerButton.IconAlignment = 'top';
+            app.EqualizerButton.FontSize = 15;
+            app.EqualizerButton.Position = [186 26 132 143];
+            app.EqualizerButton.Text = 'Equalizer';
+
+            % Create SimulatorButton
+            app.SimulatorButton = uibutton(app.UIFigure, 'push');
+            app.SimulatorButton.ButtonPushedFcn = createCallbackFcn(app, @SimulatorButtonPushed, true);
+            app.SimulatorButton.Icon = 'simulator-icon.png';
+            app.SimulatorButton.IconAlignment = 'top';
+            app.SimulatorButton.FontSize = 15;
+            app.SimulatorButton.Position = [346 26 132 143];
+            app.SimulatorButton.Text = {'Class-D amp'; 'Simulator'};
+
+            % Create InstrLabel
+            app.InstrLabel = uilabel(app.UIFigure);
+            app.InstrLabel.Position = [27 185 217 22];
+            app.InstrLabel.Text = 'Choose the application you want to run:';
+
+            % Create VersionLabel
+            app.VersionLabel = uilabel(app.UIFigure);
+            app.VersionLabel.HorizontalAlignment = 'right';
+            app.VersionLabel.FontColor = [0.502 0.502 0.502];
+            app.VersionLabel.Position = [443 185 35 22];
+            app.VersionLabel.Text = 'v1.19';
+        end
+    end
+
+    methods (Access = public)
+
+        % Construct app
+        function app = chooser
+
+            % Create and configure components
+            createComponents(app)
+
+            % Register the app with App Designer
+            registerApp(app, app.UIFigure)
+
+            if nargout == 0
+                clear app
+            end
+        end
+
+        % Code that executes before app deletion
+        function delete(app)
+
+            % Delete UIFigure when app is deleted
+            delete(app.UIFigure)
+        end
+    end
+end]]></w:t></w:r></w:p></w:body></w:document>
