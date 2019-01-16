@@ -79,10 +79,8 @@
             % Send
             d.Message = sprintf("Sending measure signal...\nDon't manipulate the amplifier or gains until the measure is complete.");
             try
-                %in = raw_acquire(signal, Fs, nBits, getpref("virtualinstruments", "outputID"), getpref("virtualinstruments", "inputID"));
+                in = raw_acquire(signal, Fs, nBits, getpref("virtualinstruments", "outputID"), getpref("virtualinstruments", "inputID"));
                 %save("test", "in", "signal");
-                load("testb", "in");
-                in = in(1:length(signal), :);
 
             % Measure (FIXME: move out of if)
             d.Message = sprintf("Measuring input signal...");
@@ -302,6 +300,7 @@
 
             % Create ToneTestAxes
             app.ToneTestAxes = uiaxes(app.ToneTestPanel);
+            title(app.ToneTestAxes, '')
             app.ToneTestAxes.Position = [8 40 300 108];
 
             % Create ToneTestLampLabel
@@ -398,6 +397,7 @@
 
             % Create IsolatedResponseAxis
             app.IsolatedResponseAxis = uiaxes(app.IsolatedResponsePanel);
+            title(app.IsolatedResponseAxis, '')
             xlabel(app.IsolatedResponseAxis, 'Frequency [Hz]')
             ylabel(app.IsolatedResponseAxis, 'Power [dB]')
             app.IsolatedResponseAxis.XLim = [20 20000];
