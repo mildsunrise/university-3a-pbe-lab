@@ -79,8 +79,10 @@
             % Send
             d.Message = sprintf("Sending measure signal...\nDon't manipulate the amplifier or gains until the measure is complete.");
             try
-                in = raw_acquire(signal, Fs, nBits, getpref("virtualinstruments", "outputID"), getpref("virtualinstruments", "inputID"));
-                save("test", "in", "signal");
+                %in = raw_acquire(signal, Fs, nBits, getpref("virtualinstruments", "outputID"), getpref("virtualinstruments", "inputID"));
+                %save("test", "in", "signal");
+                load("testb", "in");
+                in = in(1:length(signal), :);
 
             % Measure (FIXME: move out of if)
             d.Message = sprintf("Measuring input signal...");
@@ -100,13 +102,16 @@
             
             % Update components
             plot(app.ResponseAxes, freq_points, amplitude_to_db(values(1, :)) );
+            ylim(app.ResponseAxes, ylim(app.ResponseAxes) + [-2 +2]);
             plot(app.PhaseAxes, freq_points, phase / (2*pi) * 360 );
             plot(app.ThdAxes, freq_points, thd * 100 );
-            ylim(app.ThdAxes, [0 0.2]);
-            plot(app.HarmonicsAxes, freq_points, values(2:5, :));
+            ylim(app.ThdAxes, [0 max(thd)*100]);
+            plot(app.HarmonicsAxes, freq_points, amplitude_to_db(values(1, :)), '-');
+            hold(app.HarmonicsAxes, 'on');
+            plot(app.HarmonicsAxes, freq_points, amplitude_to_db(values(2:4, :)));
+            hold(app.HarmonicsAxes, 'off');
             app.GainEditField.Value = amplitude_to_db(gain);
-            thd = thd(thd < 0.4);
-            app.MeanTHDEditField.Value = median(thd) * 100;
+            app.MeanTHDEditField.Value = sum(thd) / length(thd) * 100;
             app.TestStartValueLabel.Text = datestr(start);
             app.TestDurationValueLabel.Text = sprintf("%.1f seconds", duration);
             
@@ -297,7 +302,6 @@
 
             % Create ToneTestAxes
             app.ToneTestAxes = uiaxes(app.ToneTestPanel);
-            title(app.ToneTestAxes, '')
             app.ToneTestAxes.Position = [8 40 300 108];
 
             % Create ToneTestLampLabel
@@ -329,11 +333,14 @@
 
             % Create HarmonicsAxes
             app.HarmonicsAxes = uiaxes(app.ResultsPanel);
-            title(app.HarmonicsAxes, 'Harmonic distortion')
+            title(app.HarmonicsAxes, 'Harmonics')
             xlabel(app.HarmonicsAxes, 'Frequency [Hz]')
             ylabel(app.HarmonicsAxes, 'Power [dB]')
             app.HarmonicsAxes.XLim = [20 20000];
+            app.HarmonicsAxes.Box = 'on';
             app.HarmonicsAxes.XMinorTick = 'on';
+            app.HarmonicsAxes.XGrid = 'on';
+            app.HarmonicsAxes.YGrid = 'on';
             app.HarmonicsAxes.XScale = 'log';
             app.HarmonicsAxes.Position = [329 452 300 185];
 
@@ -343,7 +350,10 @@
             xlabel(app.ResponseAxes, 'Frequency [Hz]')
             ylabel(app.ResponseAxes, 'Power [dB]')
             app.ResponseAxes.XLim = [20 20000];
+            app.ResponseAxes.Box = 'on';
             app.ResponseAxes.XMinorTick = 'on';
+            app.ResponseAxes.XGrid = 'on';
+            app.ResponseAxes.YGrid = 'on';
             app.ResponseAxes.XScale = 'log';
             app.ResponseAxes.Position = [11 452 300 185];
 
@@ -353,7 +363,10 @@
             xlabel(app.ThdAxes, 'Frequency [Hz]')
             ylabel(app.ThdAxes, 'THD [%]')
             app.ThdAxes.XLim = [20 20000];
+            app.ThdAxes.Box = 'on';
             app.ThdAxes.XMinorTick = 'on';
+            app.ThdAxes.XGrid = 'on';
+            app.ThdAxes.YGrid = 'on';
             app.ThdAxes.XScale = 'log';
             app.ThdAxes.Position = [329 246 300 185];
 
@@ -363,7 +376,10 @@
             xlabel(app.PhaseAxes, 'Frequency [Hz]')
             ylabel(app.PhaseAxes, 'Phase [deg]')
             app.PhaseAxes.XLim = [20 20000];
+            app.PhaseAxes.Box = 'on';
             app.PhaseAxes.XMinorTick = 'on';
+            app.PhaseAxes.XGrid = 'on';
+            app.PhaseAxes.YGrid = 'on';
             app.PhaseAxes.XScale = 'log';
             app.PhaseAxes.Position = [11 246 300 185];
 
@@ -382,7 +398,6 @@
 
             % Create IsolatedResponseAxis
             app.IsolatedResponseAxis = uiaxes(app.IsolatedResponsePanel);
-            title(app.IsolatedResponseAxis, '')
             xlabel(app.IsolatedResponseAxis, 'Frequency [Hz]')
             ylabel(app.IsolatedResponseAxis, 'Power [dB]')
             app.IsolatedResponseAxis.XLim = [20 20000];

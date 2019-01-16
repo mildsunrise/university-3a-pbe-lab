@@ -3,14 +3,15 @@
     % Properties that correspond to app components
     properties (Access = public)
         UIFigure                     matlab.ui.Figure
-        Slider_2                     matlab.ui.control.Slider
         ResponseAxes                 matlab.ui.control.UIAxes
         InputfilenameEditFieldLabel  matlab.ui.control.Label
         InputfilenameEditField       matlab.ui.control.EditField
+        ConversionLabel              matlab.ui.control.Label
         BrowseButton                 matlab.ui.control.Button
         ConvertButton                matlab.ui.control.Button
-        ConversionLabel              matlab.ui.control.Label
+        Panel                        matlab.ui.container.Panel
         Slider_1                     matlab.ui.control.Slider
+        Slider_2                     matlab.ui.control.Slider
         Slider_3                     matlab.ui.control.Slider
         Slider_4                     matlab.ui.control.Slider
         Slider_5                     matlab.ui.control.Slider
@@ -20,6 +21,28 @@
         Slider_9                     matlab.ui.control.Slider
         Slider_10                    matlab.ui.control.Slider
         GainsLabel                   matlab.ui.control.Label
+        CenterHzLabel                matlab.ui.control.Label
+        BandwidthLabel               matlab.ui.control.Label
+        CenterField_1                matlab.ui.control.NumericEditField
+        CenterField_2                matlab.ui.control.NumericEditField
+        CenterField_3                matlab.ui.control.NumericEditField
+        CenterField_4                matlab.ui.control.NumericEditField
+        CenterField_5                matlab.ui.control.NumericEditField
+        CenterField_6                matlab.ui.control.NumericEditField
+        CenterField_7                matlab.ui.control.NumericEditField
+        CenterField_8                matlab.ui.control.NumericEditField
+        CenterField_9                matlab.ui.control.NumericEditField
+        CenterField_10               matlab.ui.control.NumericEditField
+        BandwidthField_1             matlab.ui.control.NumericEditField
+        BandwidthField_2             matlab.ui.control.NumericEditField
+        BandwidthField_3             matlab.ui.control.NumericEditField
+        BandwidthField_4             matlab.ui.control.NumericEditField
+        BandwidthField_5             matlab.ui.control.NumericEditField
+        BandwidthField_6             matlab.ui.control.NumericEditField
+        BandwidthField_7             matlab.ui.control.NumericEditField
+        BandwidthField_8             matlab.ui.control.NumericEditField
+        BandwidthField_9             matlab.ui.control.NumericEditField
+        BandwidthField_10            matlab.ui.control.NumericEditField
     end
 
     
@@ -38,17 +61,34 @@
             app.sos(idx, :) = coef_peak(app.Freqs(idx), app.Bandwidths(idx), app.Gains(idx), app.Fs);
             app.regenerateFilter;
         end
-        function regenerateFilter(app)
-            imp = impu_coef(app.sos);
-            plot_EQ(app.ResponseAxes, imp, app.Fs);
-        end
-        function updateAllFilters(app)
-            for idx = (1:length(app.Gains))
-                app.sos(idx, :) = coef_peak(app.Freqs(idx), app.Bandwidths(idx), app.Gains(idx), app.Fs);
-            end
+    
+        function centerChanged(app, idx, value)
+            app.Freqs(idx) = value;
+            app.sos(idx, :) = coef_peak(app.Freqs(idx), app.Bandwidths(idx), app.Gains(idx), app.Fs);
             app.regenerateFilter;
         end
     
+        function bandwidthChanged(app, idx, value)
+            app.Bandwidths(idx) = value;
+            app.sos(idx, :) = coef_peak(app.Freqs(idx), app.Bandwidths(idx), app.Gains(idx), app.Fs);
+            app.regenerateFilter;
+        end
+    
+        function regenerateFilter(app)
+            imp = impu_coef(app.sos);
+            plot_EQ(app.ResponseAxes, app.Freqs, app.Bandwidths, imp, app.Fs);
+        end
+        function updateAllFilters(app)
+            centerFields = [ app.CenterField_1 app.CenterField_2 app.CenterField_3 app.CenterField_4 app.CenterField_5 app.CenterField_6 app.CenterField_7 app.CenterField_8 app.CenterField_9 app.CenterField_10 ];
+            bwFields = [ app.BandwidthField_1 app.BandwidthField_2 app.BandwidthField_3 app.BandwidthField_4 app.BandwidthField_5 app.BandwidthField_6 app.BandwidthField_7 app.BandwidthField_8 app.BandwidthField_9 app.BandwidthField_10 ];
+            for idx = (1:length(app.Gains))
+                app.sos(idx, :) = coef_peak(app.Freqs(idx), app.Bandwidths(idx), app.Gains(idx), app.Fs);
+                centerFields(idx).Value = app.Freqs(idx);
+                bwFields(idx).Value = app.Bandwidths(idx);
+            end
+            app.regenerateFilter;
+        end
+        
     end
     
 
@@ -58,60 +98,54 @@
         function startupFcn(app)
             app.Gains = zeros(1, 10);
             app.Freqs = [31.25 62.5 125 250 500 1000 2000 4000 8000 16000];
-            app.Bandwidths = 200 * ones(1, length(app.Gains));
+            app.Bandwidths = app.Freqs * (sqrt(2) - 1/sqrt(2));
             app.sos = zeros(length(app.Gains), 6);
             app.updateAllFilters;
         end
 
         % Value changed function: Slider_1
-        function Slider_1ValueChanged(app, event)
-            app.gainChanged(1, app.Slider_1.Value)
+        function Slider_1_1ValueChanged(app, event)
+            app.gainChanged(1, app.Slider_1.Value);
         end
 
         % Value changed function: Slider_2
         function Slider_2ValueChanged(app, event)
-            app.gainChanged(2, app.Slider_2.Value)
+            app.gainChanged(2, app.Slider_2.Value);
         end
 
         % Value changed function: Slider_3
         function Slider_3ValueChanged(app, event)
-            app.gainChanged(3, app.Slider_3.Value)
-
+            app.gainChanged(3, app.Slider_3.Value);
         end
 
         % Value changed function: Slider_4
         function Slider_4ValueChanged(app, event)
-            app.gainChanged(4, app.Slider_4.Value)
+            app.gainChanged(4, app.Slider_4.Value);
         end
 
         % Value changed function: Slider_5
         function Slider_5ValueChanged(app, event)
-            app.gainChanged(5, app.Slider_5.Value)
-            
+            app.gainChanged(5, app.Slider_5.Value);
         end
 
         % Value changed function: Slider_6
         function Slider_6ValueChanged(app, event)
-            app.gainChanged(6, app.Slider_6.Value)
-            
+            app.gainChanged(6, app.Slider_6.Value);
         end
 
         % Value changed function: Slider_7
         function Slider_7ValueChanged(app, event)
-            app.gainChanged(7, app.Slider_7.Value)
-            
+            app.gainChanged(7, app.Slider_7.Value);
         end
 
         % Value changed function: Slider_8
         function Slider_8ValueChanged(app, event)
-            app.gainChanged(8, app.Slider_8.Value)
-            
+            app.gainChanged(8, app.Slider_8.Value);
         end
 
         % Value changed function: Slider_9
         function Slider_9ValueChanged(app, event)
-            app.gainChanged(9, app.Slider_9.Value)
-            
+            app.gainChanged(9, app.Slider_9.Value);
         end
 
         % Value changed function: Slider_10
@@ -121,8 +155,8 @@
 
         % Button pushed function: BrowseButton
         function BrowseButtonPushed(app, event)
-            [path, file] = uigetfile("*");
-            app.InputfilenameEditField.Value = path + "/" + file;
+            [file, path] = uigetfile("*");
+            app.InputfilenameEditField.Value = path + file;
             app.ConvertButton.Enable = true;
         end
 
@@ -134,7 +168,107 @@
                 sos(idx, :) = coef_peak(app.Freqs(idx), app.Bandwidths(idx), app.Gains(idx), Fs);
             end
             y = filtrar_sos(sos, x);
-            audiowrite(app.InputfilenameEditField.Value + ".converted.wav", y, Fs);
+            audiowrite('converted.wav', y, Fs);
+        end
+
+        % Value changed function: CenterField_1
+        function CenterField_1ValueChanged(app, event)
+            app.centerChanged(1, app.CenterField_1.Value);
+        end
+
+        % Value changed function: CenterField_2
+        function CenterField_2ValueChanged(app, event)
+            app.centerChanged(2, app.CenterField_2.Value);
+        end
+
+        % Value changed function: CenterField_3
+        function CenterField_3ValueChanged(app, event)
+            app.centerChanged(3, app.CenterField_3.Value);
+        end
+
+        % Value changed function: CenterField_4
+        function CenterField_4ValueChanged(app, event)
+            app.centerChanged(4, app.CenterField_4.Value);
+        end
+
+        % Value changed function: CenterField_5
+        function CenterField_5ValueChanged(app, event)
+            app.centerChanged(5, app.CenterField_5.Value);
+        end
+
+        % Value changed function: CenterField_6
+        function CenterField_6ValueChanged(app, event)
+            app.centerChanged(6, app.CenterField_6.Value);
+        end
+
+        % Value changed function: CenterField_7
+        function CenterField_7ValueChanged(app, event)
+            app.centerChanged(7, app.CenterField_7.Value);
+        end
+
+        % Value changed function: CenterField_8
+        function CenterField_8ValueChanged(app, event)
+            app.centerChanged(8, app.CenterField_8.Value);
+        end
+
+        % Value changed function: CenterField_9
+        function CenterField_9ValueChanged(app, event)
+            app.centerChanged(9, app.CenterField_9.Value);
+        end
+
+        % Value changed function: CenterField_10
+        function CenterField_10ValueChanged(app, event)
+            app.centerChanged(10, app.CenterField_10.Value);
+        end
+
+        % Value changed function: BandwidthField_1
+        function BandwidthField_1ValueChanged(app, event)
+            app.bandwidthChanged(1, app.BandwidthField_1.Value);
+        end
+
+        % Value changed function: BandwidthField_2
+        function BandwidthField_2ValueChanged(app, event)
+            app.bandwidthChanged(2, app.BandwidthField_2.Value);
+        end
+
+        % Value changed function: BandwidthField_3
+        function BandwidthField_3ValueChanged(app, event)
+            app.bandwidthChanged(3, app.BandwidthField_3.Value);
+        end
+
+        % Value changed function: BandwidthField_4
+        function BandwidthField_4ValueChanged(app, event)
+            app.bandwidthChanged(4, app.BandwidthField_4.Value);
+        end
+
+        % Value changed function: BandwidthField_5
+        function BandwidthField_5ValueChanged(app, event)
+            app.bandwidthChanged(5, app.BandwidthField_5.Value);
+        end
+
+        % Value changed function: BandwidthField_6
+        function BandwidthField_6ValueChanged(app, event)
+            app.bandwidthChanged(6, app.BandwidthField_6.Value);
+        end
+
+        % Value changed function: BandwidthField_7
+        function BandwidthField_7ValueChanged(app, event)
+            app.bandwidthChanged(7, app.BandwidthField_7.Value);
+        end
+
+        % Value changed function: BandwidthField_8
+        function BandwidthField_8ValueChanged(app, event)
+            app.bandwidthChanged(8, app.BandwidthField_8.Value);
+        end
+
+        % Value changed function: BandwidthField_9
+        function BandwidthField_9ValueChanged(app, event)
+            app.bandwidthChanged(9, app.BandwidthField_9.Value);
+        end
+
+        % Value changed function: BandwidthField_10
+        function BandwidthField_10ValueChanged(app, event)
+            app.bandwidthChanged(10, app.BandwidthField_10.Value);
         end
     end
 
@@ -146,50 +280,35 @@
 
             % Create UIFigure
             app.UIFigure = uifigure;
-            app.UIFigure.Position = [100 100 640 617];
+            app.UIFigure.Position = [100 100 640 667];
             app.UIFigure.Name = 'Equalizer | Virtual instruments';
-
-            % Create Slider_1
-            app.Slider_1 = uislider(app.UIFigure);
-            app.Slider_1.Limits = [-10 10];
-            app.Slider_1.Orientation = 'vertical';
-            app.Slider_1.ValueChangedFcn = createCallbackFcn(app, @Slider_1ValueChanged, true);
-            app.Slider_1.Position = [82 101 3 238];
-
-            % Create Slider_2
-            app.Slider_2 = uislider(app.UIFigure);
-            app.Slider_2.Limits = [-10 10];
-            app.Slider_2.Orientation = 'vertical';
-            app.Slider_2.ValueChangedFcn = createCallbackFcn(app, @Slider_2ValueChanged, true);
-            app.Slider_2.Position = [136 101 3 238];
 
             % Create ResponseAxes
             app.ResponseAxes = uiaxes(app.UIFigure);
-            title(app.ResponseAxes, 'Frequency response')
             xlabel(app.ResponseAxes, 'X')
             ylabel(app.ResponseAxes, 'Y')
-            app.ResponseAxes.Position = [21 367 599 236];
+            app.ResponseAxes.Position = [21 417 599 236];
 
             % Create InputfilenameEditFieldLabel
             app.InputfilenameEditFieldLabel = uilabel(app.UIFigure);
-            app.InputfilenameEditFieldLabel.Position = [21 19 84 22];
+            app.InputfilenameEditFieldLabel.Position = [19 19 84 22];
             app.InputfilenameEditFieldLabel.Text = 'Input filename:';
 
             % Create InputfilenameEditField
             app.InputfilenameEditField = uieditfield(app.UIFigure, 'text');
-            app.InputfilenameEditField.Position = [114 19 201 22];
+            app.InputfilenameEditField.Position = [112 19 201 22];
 
             % Create ConversionLabel
             app.ConversionLabel = uilabel(app.UIFigure);
             app.ConversionLabel.FontWeight = 'bold';
-            app.ConversionLabel.Position = [21 51 94 22];
+            app.ConversionLabel.Position = [19 51 94 22];
             app.ConversionLabel.Text = 'Conversion';
 
             % Create BrowseButton
             app.BrowseButton = uibutton(app.UIFigure, 'push');
             app.BrowseButton.ButtonPushedFcn = createCallbackFcn(app, @BrowseButtonPushed, true);
             app.BrowseButton.Icon = 'file.png';
-            app.BrowseButton.Position = [327 19 74 22];
+            app.BrowseButton.Position = [325 19 74 22];
             app.BrowseButton.Text = 'Browse';
 
             % Create ConvertButton
@@ -197,69 +316,238 @@
             app.ConvertButton.ButtonPushedFcn = createCallbackFcn(app, @ConvertButtonPushed, true);
             app.ConvertButton.FontWeight = 'bold';
             app.ConvertButton.Enable = 'off';
-            app.ConvertButton.Position = [436 19 87 22];
+            app.ConvertButton.Position = [434 19 87 22];
             app.ConvertButton.Text = 'Convert';
 
+            % Create Panel
+            app.Panel = uipanel(app.UIFigure);
+            app.Panel.BorderType = 'none';
+            app.Panel.Position = [1 87 640 316];
+
+            % Create Slider_1
+            app.Slider_1 = uislider(app.Panel);
+            app.Slider_1.Limits = [-10 10];
+            app.Slider_1.Orientation = 'vertical';
+            app.Slider_1.ValueChangedFcn = createCallbackFcn(app, @Slider_1_1ValueChanged, true);
+            app.Slider_1.Position = [93 71 3 238];
+
+            % Create Slider_2
+            app.Slider_2 = uislider(app.Panel);
+            app.Slider_2.Limits = [-10 10];
+            app.Slider_2.Orientation = 'vertical';
+            app.Slider_2.ValueChangedFcn = createCallbackFcn(app, @Slider_2ValueChanged, true);
+            app.Slider_2.Position = [147 71 3 238];
+
             % Create Slider_3
-            app.Slider_3 = uislider(app.UIFigure);
+            app.Slider_3 = uislider(app.Panel);
             app.Slider_3.Limits = [-10 10];
             app.Slider_3.Orientation = 'vertical';
             app.Slider_3.ValueChangedFcn = createCallbackFcn(app, @Slider_3ValueChanged, true);
-            app.Slider_3.Position = [190 101 3 238];
+            app.Slider_3.Position = [201 71 3 238];
 
             % Create Slider_4
-            app.Slider_4 = uislider(app.UIFigure);
+            app.Slider_4 = uislider(app.Panel);
             app.Slider_4.Limits = [-10 10];
             app.Slider_4.Orientation = 'vertical';
             app.Slider_4.ValueChangedFcn = createCallbackFcn(app, @Slider_4ValueChanged, true);
-            app.Slider_4.Position = [244 101 3 238];
+            app.Slider_4.Position = [255 71 3 238];
 
             % Create Slider_5
-            app.Slider_5 = uislider(app.UIFigure);
+            app.Slider_5 = uislider(app.Panel);
             app.Slider_5.Limits = [-10 10];
             app.Slider_5.Orientation = 'vertical';
             app.Slider_5.ValueChangedFcn = createCallbackFcn(app, @Slider_5ValueChanged, true);
-            app.Slider_5.Position = [298 101 3 238];
+            app.Slider_5.Position = [309 71 3 238];
 
             % Create Slider_6
-            app.Slider_6 = uislider(app.UIFigure);
+            app.Slider_6 = uislider(app.Panel);
             app.Slider_6.Limits = [-10 10];
             app.Slider_6.Orientation = 'vertical';
             app.Slider_6.ValueChangedFcn = createCallbackFcn(app, @Slider_6ValueChanged, true);
-            app.Slider_6.Position = [352 101 3 238];
+            app.Slider_6.Position = [363 71 3 238];
 
             % Create Slider_7
-            app.Slider_7 = uislider(app.UIFigure);
+            app.Slider_7 = uislider(app.Panel);
             app.Slider_7.Limits = [-10 10];
             app.Slider_7.Orientation = 'vertical';
             app.Slider_7.ValueChangedFcn = createCallbackFcn(app, @Slider_7ValueChanged, true);
-            app.Slider_7.Position = [405 101 3 238];
+            app.Slider_7.Position = [416 71 3 238];
 
             % Create Slider_8
-            app.Slider_8 = uislider(app.UIFigure);
+            app.Slider_8 = uislider(app.Panel);
             app.Slider_8.Limits = [-10 10];
             app.Slider_8.Orientation = 'vertical';
             app.Slider_8.ValueChangedFcn = createCallbackFcn(app, @Slider_8ValueChanged, true);
-            app.Slider_8.Position = [458 101 3 238];
+            app.Slider_8.Position = [469 71 3 238];
 
             % Create Slider_9
-            app.Slider_9 = uislider(app.UIFigure);
+            app.Slider_9 = uislider(app.Panel);
             app.Slider_9.Limits = [-10 10];
             app.Slider_9.Orientation = 'vertical';
             app.Slider_9.ValueChangedFcn = createCallbackFcn(app, @Slider_9ValueChanged, true);
-            app.Slider_9.Position = [511 101 3 238];
+            app.Slider_9.Position = [522 71 3 238];
 
             % Create Slider_10
-            app.Slider_10 = uislider(app.UIFigure);
+            app.Slider_10 = uislider(app.Panel);
             app.Slider_10.Limits = [-10 10];
             app.Slider_10.Orientation = 'vertical';
             app.Slider_10.ValueChangedFcn = createCallbackFcn(app, @Slider_10ValueChanged, true);
-            app.Slider_10.Position = [564 101 3 238];
+            app.Slider_10.Position = [575 71 3 238];
 
             % Create GainsLabel
-            app.GainsLabel = uilabel(app.UIFigure);
-            app.GainsLabel.Position = [24 209 37 22];
+            app.GainsLabel = uilabel(app.Panel);
+            app.GainsLabel.Position = [21 179 37 22];
             app.GainsLabel.Text = 'Gains';
+
+            % Create CenterHzLabel
+            app.CenterHzLabel = uilabel(app.Panel);
+            app.CenterHzLabel.Position = [19 38 66 22];
+            app.CenterHzLabel.Text = 'Center [Hz]';
+
+            % Create BandwidthLabel
+            app.BandwidthLabel = uilabel(app.Panel);
+            app.BandwidthLabel.Position = [19 9 62 22];
+            app.BandwidthLabel.Text = 'Bandwidth';
+
+            % Create CenterField_1
+            app.CenterField_1 = uieditfield(app.Panel, 'numeric');
+            app.CenterField_1.ValueDisplayFormat = '%.0f';
+            app.CenterField_1.ValueChangedFcn = createCallbackFcn(app, @CenterField_1ValueChanged, true);
+            app.CenterField_1.Position = [93 38 46 22];
+            app.CenterField_1.Value = 10000;
+
+            % Create CenterField_2
+            app.CenterField_2 = uieditfield(app.Panel, 'numeric');
+            app.CenterField_2.ValueDisplayFormat = '%.0f';
+            app.CenterField_2.ValueChangedFcn = createCallbackFcn(app, @CenterField_2ValueChanged, true);
+            app.CenterField_2.Position = [147 38 46 22];
+            app.CenterField_2.Value = 10000;
+
+            % Create CenterField_3
+            app.CenterField_3 = uieditfield(app.Panel, 'numeric');
+            app.CenterField_3.ValueDisplayFormat = '%.0f';
+            app.CenterField_3.ValueChangedFcn = createCallbackFcn(app, @CenterField_3ValueChanged, true);
+            app.CenterField_3.Position = [201 38 46 22];
+            app.CenterField_3.Value = 10000;
+
+            % Create CenterField_4
+            app.CenterField_4 = uieditfield(app.Panel, 'numeric');
+            app.CenterField_4.ValueDisplayFormat = '%.0f';
+            app.CenterField_4.ValueChangedFcn = createCallbackFcn(app, @CenterField_4ValueChanged, true);
+            app.CenterField_4.Position = [255 38 46 22];
+            app.CenterField_4.Value = 10000;
+
+            % Create CenterField_5
+            app.CenterField_5 = uieditfield(app.Panel, 'numeric');
+            app.CenterField_5.ValueDisplayFormat = '%.0f';
+            app.CenterField_5.ValueChangedFcn = createCallbackFcn(app, @CenterField_5ValueChanged, true);
+            app.CenterField_5.Position = [309 38 46 22];
+            app.CenterField_5.Value = 10000;
+
+            % Create CenterField_6
+            app.CenterField_6 = uieditfield(app.Panel, 'numeric');
+            app.CenterField_6.ValueDisplayFormat = '%.0f';
+            app.CenterField_6.ValueChangedFcn = createCallbackFcn(app, @CenterField_6ValueChanged, true);
+            app.CenterField_6.Position = [363 38 46 22];
+            app.CenterField_6.Value = 10000;
+
+            % Create CenterField_7
+            app.CenterField_7 = uieditfield(app.Panel, 'numeric');
+            app.CenterField_7.ValueDisplayFormat = '%.0f';
+            app.CenterField_7.ValueChangedFcn = createCallbackFcn(app, @CenterField_7ValueChanged, true);
+            app.CenterField_7.Position = [416 38 46 22];
+            app.CenterField_7.Value = 10000;
+
+            % Create CenterField_8
+            app.CenterField_8 = uieditfield(app.Panel, 'numeric');
+            app.CenterField_8.ValueDisplayFormat = '%.0f';
+            app.CenterField_8.ValueChangedFcn = createCallbackFcn(app, @CenterField_8ValueChanged, true);
+            app.CenterField_8.Position = [469 38 46 22];
+            app.CenterField_8.Value = 10000;
+
+            % Create CenterField_9
+            app.CenterField_9 = uieditfield(app.Panel, 'numeric');
+            app.CenterField_9.ValueDisplayFormat = '%.0f';
+            app.CenterField_9.ValueChangedFcn = createCallbackFcn(app, @CenterField_9ValueChanged, true);
+            app.CenterField_9.Position = [522 38 46 22];
+            app.CenterField_9.Value = 10000;
+
+            % Create CenterField_10
+            app.CenterField_10 = uieditfield(app.Panel, 'numeric');
+            app.CenterField_10.ValueDisplayFormat = '%.0f';
+            app.CenterField_10.ValueChangedFcn = createCallbackFcn(app, @CenterField_10ValueChanged, true);
+            app.CenterField_10.Position = [575 38 46 22];
+            app.CenterField_10.Value = 10000;
+
+            % Create BandwidthField_1
+            app.BandwidthField_1 = uieditfield(app.Panel, 'numeric');
+            app.BandwidthField_1.ValueDisplayFormat = '%.0f';
+            app.BandwidthField_1.ValueChangedFcn = createCallbackFcn(app, @BandwidthField_1ValueChanged, true);
+            app.BandwidthField_1.Position = [93 9 46 22];
+            app.BandwidthField_1.Value = 10000;
+
+            % Create BandwidthField_2
+            app.BandwidthField_2 = uieditfield(app.Panel, 'numeric');
+            app.BandwidthField_2.ValueDisplayFormat = '%.0f';
+            app.BandwidthField_2.ValueChangedFcn = createCallbackFcn(app, @BandwidthField_2ValueChanged, true);
+            app.BandwidthField_2.Position = [147 9 46 22];
+            app.BandwidthField_2.Value = 10000;
+
+            % Create BandwidthField_3
+            app.BandwidthField_3 = uieditfield(app.Panel, 'numeric');
+            app.BandwidthField_3.ValueDisplayFormat = '%.0f';
+            app.BandwidthField_3.ValueChangedFcn = createCallbackFcn(app, @BandwidthField_3ValueChanged, true);
+            app.BandwidthField_3.Position = [201 9 46 22];
+            app.BandwidthField_3.Value = 10000;
+
+            % Create BandwidthField_4
+            app.BandwidthField_4 = uieditfield(app.Panel, 'numeric');
+            app.BandwidthField_4.ValueDisplayFormat = '%.0f';
+            app.BandwidthField_4.ValueChangedFcn = createCallbackFcn(app, @BandwidthField_4ValueChanged, true);
+            app.BandwidthField_4.Position = [255 9 46 22];
+            app.BandwidthField_4.Value = 10000;
+
+            % Create BandwidthField_5
+            app.BandwidthField_5 = uieditfield(app.Panel, 'numeric');
+            app.BandwidthField_5.ValueDisplayFormat = '%.0f';
+            app.BandwidthField_5.ValueChangedFcn = createCallbackFcn(app, @BandwidthField_5ValueChanged, true);
+            app.BandwidthField_5.Position = [309 9 46 22];
+            app.BandwidthField_5.Value = 10000;
+
+            % Create BandwidthField_6
+            app.BandwidthField_6 = uieditfield(app.Panel, 'numeric');
+            app.BandwidthField_6.ValueDisplayFormat = '%.0f';
+            app.BandwidthField_6.ValueChangedFcn = createCallbackFcn(app, @BandwidthField_6ValueChanged, true);
+            app.BandwidthField_6.Position = [363 9 46 22];
+            app.BandwidthField_6.Value = 10000;
+
+            % Create BandwidthField_7
+            app.BandwidthField_7 = uieditfield(app.Panel, 'numeric');
+            app.BandwidthField_7.ValueDisplayFormat = '%.0f';
+            app.BandwidthField_7.ValueChangedFcn = createCallbackFcn(app, @BandwidthField_7ValueChanged, true);
+            app.BandwidthField_7.Position = [416 9 46 22];
+            app.BandwidthField_7.Value = 10000;
+
+            % Create BandwidthField_8
+            app.BandwidthField_8 = uieditfield(app.Panel, 'numeric');
+            app.BandwidthField_8.ValueDisplayFormat = '%.0f';
+            app.BandwidthField_8.ValueChangedFcn = createCallbackFcn(app, @BandwidthField_8ValueChanged, true);
+            app.BandwidthField_8.Position = [469 9 46 22];
+            app.BandwidthField_8.Value = 10000;
+
+            % Create BandwidthField_9
+            app.BandwidthField_9 = uieditfield(app.Panel, 'numeric');
+            app.BandwidthField_9.ValueDisplayFormat = '%.0f';
+            app.BandwidthField_9.ValueChangedFcn = createCallbackFcn(app, @BandwidthField_9ValueChanged, true);
+            app.BandwidthField_9.Position = [522 9 46 22];
+            app.BandwidthField_9.Value = 10000;
+
+            % Create BandwidthField_10
+            app.BandwidthField_10 = uieditfield(app.Panel, 'numeric');
+            app.BandwidthField_10.ValueDisplayFormat = '%.0f';
+            app.BandwidthField_10.ValueChangedFcn = createCallbackFcn(app, @BandwidthField_10ValueChanged, true);
+            app.BandwidthField_10.Position = [575 9 46 22];
+            app.BandwidthField_10.Value = 10000;
         end
     end
 

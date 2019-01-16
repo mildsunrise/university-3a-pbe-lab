@@ -24,6 +24,11 @@ for f = [ 80 440 4000 ]
     end
 end
 
+% - cosinus 440 amb amplitud lineal
+amplitude = linspace(0, 1, Fs*2);
+y = sin( 2*pi*(f/Fs)*(1:length(amplitude)) );
+signal = [ signal (amplitude * y) ];
+
 % - dos cosinus, a 340 i a 440
 signal = [ signal sep ];
 for amplitude = [ 0.1 0.5 1 ]

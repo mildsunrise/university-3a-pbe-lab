@@ -2,7 +2,7 @@ function [ values, originals, phase, gain, thd, base_amplitude ] = analyzer_sign
 %ANALYZER_SIGNAL_MEASURE Make measurements from analyzer input signal
 
     % Detect latency, split signal
-    latency = detect_latency(in(1:(Fs*1 + Fs*1.5), 1)')
+    latency = detect_latency(in(1:(Fs*1 + Fs*1.5), 1)');
     % TODO: safety tests
     signal_start = round(latency + Fs*1.5 + Fs*.1);
     signal = in(signal_start:signal_start + freq_time - 1, :);
@@ -12,7 +12,6 @@ function [ values, originals, phase, gain, thd, base_amplitude ] = analyzer_sign
     freq_times = cumsum([0 freq_times]);
     values = zeros(harmonics + 1, length(freq_points));
     originals = ones(1, length(freq_points));
-    freq_times(51)
     for p = (1:length(freq_points))
         freq = freq_points(p);
         response = signal(freq_times(p)+1:freq_times(p+1), :); % FIXME: don't use length
@@ -22,7 +21,9 @@ function [ values, originals, phase, gain, thd, base_amplitude ] = analyzer_sign
             originals(p) = 2 * sum(exp(fv) .* response(:, 2)') / length(response);
         end
         for h = (1:harmonics+1)
-            values(h, p) = 2 * sum(exp(fv*h) .* response(:, 1)') / length(response);
+            if freq * h < Fs/2
+                values(h, p) = 2 * sum(exp(fv*h) .* response(:, 1)') / length(response);
+            end
         end
     end
 
@@ -39,6 +40,6 @@ function [ values, originals, phase, gain, thd, base_amplitude ] = analyzer_sign
     % Calculate THD
     powers = abs(values).^2;
     powers_main = powers(1, :);
-    powers_harmonics = sum(powers(2:harmonics+1));
+    powers_harmonics = sum(powers(2:harmonics+1, :));
     thd = powers_harmonics ./ powers_main;
 end

@@ -169,7 +169,6 @@
 
             % Create OutputDeviceDropDown
             app.OutputDeviceDropDown = uidropdown(app.AudioConfigFigure);
-            app.OutputDeviceDropDown.Tooltip = {'Audio device to use for playback.'};
             app.OutputDeviceDropDown.Position = [93 468 310 22];
 
             % Create OutputStepLabel
@@ -192,7 +191,6 @@
             app.OutputTestLeftButton = uibutton(app.AudioConfigFigure, 'push');
             app.OutputTestLeftButton.ButtonPushedFcn = createCallbackFcn(app, @OutputTestLeftButtonPushed, true);
             app.OutputTestLeftButton.Icon = 'media-play.png';
-            app.OutputTestLeftButton.Tooltip = {'Play 4 seconds of a 440Hz tone on the left channel.'};
             app.OutputTestLeftButton.Position = [93 438 81 22];
             app.OutputTestLeftButton.Text = 'Play left';
 
@@ -200,7 +198,6 @@
             app.OutputTestRightButton = uibutton(app.AudioConfigFigure, 'push');
             app.OutputTestRightButton.ButtonPushedFcn = createCallbackFcn(app, @OutputTestRightButtonPushed, true);
             app.OutputTestRightButton.Icon = 'media-play.png';
-            app.OutputTestRightButton.Tooltip = {'Play 4 seconds of a 440Hz tone on the right channel.'};
             app.OutputTestRightButton.Position = [183 438 88 22];
             app.OutputTestRightButton.Text = 'Play right';
 
@@ -211,7 +208,6 @@
 
             % Create InputDeviceDropDown
             app.InputDeviceDropDown = uidropdown(app.AudioConfigFigure);
-            app.InputDeviceDropDown.Tooltip = {'Audio device to use for recording.'};
             app.InputDeviceDropDown.Position = [93 369 310 22];
 
             % Create InputStepLabel
@@ -233,9 +229,7 @@
 
             % Create TestSignalAxes
             app.TestSignalAxes = uiaxes(app.AudioConfigFigure);
-            title(app.TestSignalAxes, '')
             xlabel(app.TestSignalAxes, 'time [s]')
-            ylabel(app.TestSignalAxes, '')
             app.TestSignalAxes.YLim = [-1 1];
             app.TestSignalAxes.YTick = [-1 -0.75 -0.5 -0.25 0 0.25 0.5 0.75 1];
             app.TestSignalAxes.Position = [18 64 385 161];
@@ -244,7 +238,6 @@
             app.ReloadButton = uibutton(app.AudioConfigFigure, 'push');
             app.ReloadButton.ButtonPushedFcn = createCallbackFcn(app, @ReloadButtonPushed, true);
             app.ReloadButton.Icon = 'reload.png';
-            app.ReloadButton.Tooltip = {'Query system for available audio devices.'};
             app.ReloadButton.Position = [18 18 124 34];
             app.ReloadButton.Text = 'Reload devices';
 
@@ -254,7 +247,6 @@
             app.DoneButton.Icon = 'check.png';
             app.DoneButton.FontWeight = 'bold';
             app.DoneButton.Enable = 'off';
-            app.DoneButton.Tooltip = {'Apply changes.'};
             app.DoneButton.Position = [319 18 84 34];
             app.DoneButton.Text = 'Done';
 
