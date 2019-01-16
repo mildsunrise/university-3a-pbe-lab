@@ -21,6 +21,11 @@ Es fa servir **Matlab 2018B**.
 No es permet l'us de toolboxes al codi.  
 L'aplicació es compilarà abans de ser entregada.
 
+## Us
+
+Cal executar `main.m`, que configura el path de Matlab i obre la pantalla principal (`chooser`).
+El fitxer `project.prj` es pot fer servir per a compilar l'aplicació amb el compilador de Matlab.
+
 ## Estructura
 
  * `src`: Codi font de l'aplicació.
@@ -42,3 +47,5 @@ L'aplicació es compilarà abans de ser entregada.
  * `tests`: Mostres de senyal i scripts per provar diverses parts del codi.
 
    * `latency`: Scripts i mostres relatives a la mesura de retard (latència).
+
+ * `tools`: Eines o scripts externs per a l'ajuda en el desenvolupament.
