@@ -30,6 +30,8 @@ El fitxer `project.prj` es pot fer servir per a compilar l'aplicació amb el com
 
  * `src`: Codi font de l'aplicació.
 
+   * `chooser`: Pantalla principal per triar quina aplicació executar.
+
    * `adc`: Mòdul de configuració i interacció amb la targeta de so.
 
    * `analyzer`: Codi de l'aplicació **analitzador d'amplificadors**.
